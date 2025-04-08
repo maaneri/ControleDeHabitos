@@ -1,69 +1,95 @@
 package com.example.controledehabitos;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListView;
-
-import androidx.appcompat.app.AppCompatActivity;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
-    private ListView listView;
-    private Button btnAdicionar;
-    private ArrayAdapter<String> adapter;
-    private ArrayList<Habits> habitsList;
-    private DatabaseHelper dbHelper;
+public class MainActivity extends Activity {
+
+    LinearLayout container;
+    DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        // Inicializando os elementos da interface
-        listView = findViewById(R.id.listView);
-        btnAdicionar = findViewById(R.id.btnAdicionar);
 
         dbHelper = new DatabaseHelper(this);
 
-        btnAdicionar = findViewById(R.id.btnAdicionar);
+        ScrollView scroll = new ScrollView(this);
+        container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(16, 16, 16, 16);
 
+        Button btnAdicionar = new Button(this);
+        btnAdicionar.setText("Adicionar Hábito");
         btnAdicionar.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, HabitsFormActivity.class);
             startActivity(intent);
         });
 
-        listView.setOnItemClickListener((parent, view, position, id) -> {
-            Intent intent = new Intent(this, HabitsFormActivity.class);
-            intent.putExtra("habitId", habitsList.get(position).getId());
-            startActivity(intent);
-        });
-
-        listView.setOnItemLongClickListener((parent, view, position, id) -> {
-            Habits habit = habitsList.get(position);
-            habit.setFeitoHoje(!habit.isFeitoHoje());
-            dbHelper.updateHabit(habit);
-            loadList();
-            return true;
-        });
+        container.addView(btnAdicionar);
+        scroll.addView(container);
+        setContentView(scroll);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        loadList();
+        carregarHabitos();
     }
 
-    private void loadList() {
-        habitsList = dbHelper.getAllHabits();
-        ArrayList<String> displayList = new ArrayList<>();
+    private void carregarHabitos() {
+        container.removeViews(1, container.getChildCount() - 1);
+
+        ArrayList<Habits> habitsList = dbHelper.getAllHabits();
+
         for (Habits h : habitsList) {
-            String status = h.isFeitoHoje() ? "✅" : "❌";
-            displayList.add(status + " " + h.getNome() + " - " + h.getDescricao());
+            LinearLayout itemLayout = new LinearLayout(this);
+            itemLayout.setOrientation(LinearLayout.VERTICAL);
+            itemLayout.setPadding(16, 16, 16, 16);
+
+            CheckBox chkFeito = new CheckBox(this);
+            chkFeito.setChecked(h.isFeitoHoje());
+            chkFeito.setText(h.getNome());
+            chkFeito.setTextSize(18);
+
+            TextView txtDescricao = new TextView(this);
+            txtDescricao.setText(h.getDescricao());
+            txtDescricao.setTextSize(14);
+            txtDescricao.setPadding(48, 4, 0, 0);
+
+            // Atualizar status do hábito quando marcado/desmarcado
+            chkFeito.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                h.setFeitoHoje(isChecked);
+                dbHelper.updateHabit(h);
+            });
+
+            // Editar hábito ao clicar
+            chkFeito.setOnClickListener(v -> {
+                if (!chkFeito.isPressed()) return;
+
+                Intent i = new Intent(this, HabitsFormActivity.class);
+                i.putExtra("habitId", h.getId());
+                startActivity(i);
+            });
+
+            // Excluir hábito ao pressionar longo
+            chkFeito.setOnLongClickListener(v -> {
+                dbHelper.deleteHabit(h.getId());
+                carregarHabitos();
+                return true;
+            });
+
+            itemLayout.addView(chkFeito);
+            itemLayout.addView(txtDescricao);
+            container.addView(itemLayout);
         }
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, displayList);
-        listView.setAdapter(adapter);
     }
 }
