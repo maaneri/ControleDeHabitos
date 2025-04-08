@@ -2,64 +2,49 @@ package com.example.controledehabitos;
 
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 public class HabitsFormActivity extends AppCompatActivity {
-    private EditText nomeInput, descricaoInput;
-    private CheckBox feitoHojeCheckBox;
-    private Button salvarButton;
-    private DatabaseHelper dbHelper;
-    private int habitId = -1;
+
+    EditText nomeInput, descricaoInput;
+    DatabaseHelper dbHelper;
+    int habitId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_habit_form);
 
+        dbHelper = new DatabaseHelper(this);
         nomeInput = findViewById(R.id.nomeInput);
         descricaoInput = findViewById(R.id.descricaoInput);
-        feitoHojeCheckBox = findViewById(R.id.feitoHojeCheckBox);
-        salvarButton = findViewById(R.id.salvarButton);
-        dbHelper = new DatabaseHelper(this);
+        Button salvarButton = findViewById(R.id.salvarButton);
 
-        // Verifica se veio um hábito para editar
-        habitId = getIntent().getIntExtra("habitId", -1);
-        if (habitId != -1) {
-            Habits habit = dbHelper.getHabitById(habitId);
-            if (habit != null) {
-                nomeInput.setText(habit.getNome());
-                descricaoInput.setText(habit.getDescricao());
-                feitoHojeCheckBox.setChecked(habit.isFeitoHoje());
+        if (getIntent().hasExtra("habitId")) {
+            habitId = getIntent().getIntExtra("habitId", -1);
+            Habits h = dbHelper.getHabitById(habitId);
+            if (h != null) {
+                nomeInput.setText(h.nome);
+                descricaoInput.setText(h.descricao);
             }
         }
 
-        // Salvar hábito
         salvarButton.setOnClickListener(v -> {
-            String nome = nomeInput.getText().toString().trim();
-            String descricao = descricaoInput.getText().toString().trim();
-            boolean feitoHoje = feitoHojeCheckBox.isChecked();
-
-            if (nome.isEmpty() || descricao.isEmpty()) {
-                Toast.makeText(this, "Preencha todos os campos", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            String nome = nomeInput.getText().toString();
+            String desc = descricaoInput.getText().toString();
 
             if (habitId == -1) {
-                // Novo hábito
-                dbHelper.insertHabit(new Habits(nome, descricao, feitoHoje));
+                dbHelper.insertHabit(new Habits(nome, desc, false));
             } else {
-                // Atualizar hábito existente
-                dbHelper.updateHabit(new Habits(habitId, nome, descricao, feitoHoje));
+                Habits h = dbHelper.getHabitById(habitId);
+                h.nome = nome;
+                h.descricao = desc;
+                dbHelper.updateHabit(h);
             }
 
-            finish(); // Volta para a tela principal
+            finish();
         });
     }
 }
-
-
-
