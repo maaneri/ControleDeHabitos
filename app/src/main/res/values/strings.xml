@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">ControledeHabitos</string>
+    <string name="feito_hoje">Feito hoje?</string>
+    <string name="salvar_h_bito">Salvar hábito</string>
+    <string name="descri_o">Descrição</string>
+    <string name="nome_do_h_bito">Nome do hábito</string>
+</resources>
